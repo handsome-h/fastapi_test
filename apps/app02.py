@@ -1,4 +1,4 @@
-# app/app01.py
+# apps/app01.py
 from fastapi import APIRouter
 
 router2 = APIRouter(prefix="/router2")

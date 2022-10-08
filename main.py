@@ -317,6 +317,11 @@ from fastapi.responses import RedirectResponse
 @app.get("/index")
 async def index():
     return RedirectResponse("https://www.bilibili.com")
+@app.get("/redirect")
+async def redirect():
+    url = app.url_path_for("index")
+    response = RedirectResponse(url=url)
+    return response
 # 文件
 from fastapi.responses import FileResponse
 @app.get("/index")
@@ -327,9 +332,22 @@ async def index():
 
 # ================== 静态资源 =================
 # name 参数只是起一个名字，FastAPI 内部使用
-# 浏览器输入：localhost:5555/static/1.png，那么会返回 C:\Users\satori\Desktop\bg 下的 1.png 文件。
+# 浏览器输入：localhost:5555/statics/1.png，那么会返回 C:\Users\satori\Desktop\bg 下的 1.png 文件。
 from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory=r".\static"), name="static")
+app.mount("static", StaticFiles(directory=r".\statics"), name="static")
+
+
+# ====================== 模板渲染 =========================
+# FastAPI 常用Jinja2模板引擎实现页面渲染
+from fastapi import requests
+from fastapi.templating import Jinja2Templates
+# 实例化一个模板引擎对象，指定模板所在路径
+templates=Jinja2Templates(directory='templates')
+@app.get('/index/{info}')
+# 在视图函数中传入request对象，用于在模板对象中传递上下文（同时接收路径参数info，将其传递到上下文中）
+async def index(request:Request,info:str):
+    # 返回一个模板对象，同时使用上下文中的数据对模板进行渲染
+    return templates.TemplateResponse(name='index.html', context={'request':request,'info':info})
 
 
 
@@ -397,9 +415,9 @@ async def order(email: str, bg_tasks: BackgroundTasks):
 
 
 # ============================= APIRouter ======================
-# 将 router 注册到 app 中，相当于 Flask 中的 register_blueprint
-from app.app01 import router1
-from app.app02 import router2
+# 将 router 注册到 apps 中，相当于 Flask 中的 register_blueprint
+from apps.app01 import router1
+from apps.app02 import router2
 app.include_router(router1)
 app.include_router(router2)
 
@@ -415,7 +433,7 @@ async def view_func(request: Request):
 @app.middleware("http")
 async def middleware(request: Request, call_next):
     """
-    定义一个协程函数，然后使用 @app.middleware("http") 装饰，即可得到中间件
+    定义一个协程函数，然后使用 @apps.middleware("http") 装饰，即可得到中间件
     """
     # 请求到来时会先经过这里的中间件
     if request.headers.get("ping", "") != "pong":
@@ -438,18 +456,18 @@ async def middleware(request: Request, call_next):
 # 通过自定义中间件，我们可以在不修改视图函数的情况下，实现功能的扩展。但是除了自定义中间件之外，FastAPI 还提供了很多内置的中间件。
 # 要求请求协议必须是 https 或者 wss，如果不是，则自动跳转
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
-# app.add_middleware(HTTPSRedirectMiddleware)
+# apps.add_middleware(HTTPSRedirectMiddleware)
 
 # 请求中必须包含 Host 字段，为防止 HTTP 主机报头攻击，并且添加中间件的时候，还可以指定一个 allowed_hosts，那么它是干什么的呢？
 # 假设我们有服务 a.example.com, b.example.com, c.example.com
 # 但我们不希望用户访问 c.example.com，就可以像下面这么设置，如果指定为 ["*"]，或者不指定 allow_hosts，则表示无限制
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-# app.add_middleware(TrustedHostMiddleware, allowed_hosts=["a.example.com", "b.example.com"])
+# apps.add_middleware(TrustedHostMiddleware, allowed_hosts=["a.example.com", "b.example.com"])
 
 # 如果用户的请求头的 Accept-Encoding 字段包含 gzip，那么 FastAPI 会使用 GZip 算法压缩
 # minimum_size=1000 表示当大小不超过 1000 字节的时候就不压缩了
 from starlette.middleware.gzip import GZipMiddleware
-# app.add_middleware(GZipMiddleware, minimum_size=1000)
+# apps.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 
@@ -529,7 +547,7 @@ async def ws(websocket: WebSocket):
 
 # ================================ 部署 ==================================
 # 直接 uvicorn.run 即可。run()参数如下：
-# app：第一个参数，不需要解释
+# apps：第一个参数，不需要解释
 # host：监听的ip
 # port：监听的端口
 # uds：绑定的 unix domain socket，一般不用
@@ -555,11 +573,11 @@ async def ws(websocket: WebSocket):
 
 # 在 Windows 中必须加上 if __name__ == "__main__"，否则会抛出 RuntimeError: This event loop is already running
 if __name__ == "__main__":
-    # 启动服务，因为我们这个文件叫做 main.py，所以需要启动 main.py 里面的 app
-    # 第一个参数 "main:app" 就表示这个含义，然后是 host 和 port 表示监听的 ip 和端口
-    uvicorn.run("main:app", host="0.0.0.0", port=5555, reload=True)
+    # 启动服务，因为我们这个文件叫做 main.py，所以需要启动 main.py 里面的 apps
+    # 第一个参数 "main:apps" 就表示这个含义，然后是 host 和 port 表示监听的 ip 和端口
+    uvicorn.run("main:apps", host="0.0.0.0", port=5555, reload=True)
 
 
 # FastAPI 会自动提供一个类似于 Swagger 的交互式文档，访问交互式文档，url：/docs
 # 可以设置docs页面本身
-# app = FastAPI(title="测试文档", description="这是一个简单的 demo", docs_url="/my_docs", openapi_url="/my_openapi")
+# apps = FastAPI(title="测试文档", description="这是一个简单的 demo", docs_url="/my_docs", openapi_url="/my_openapi")
