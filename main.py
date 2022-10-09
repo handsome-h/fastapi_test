@@ -332,9 +332,9 @@ async def index():
 
 # ================== 静态资源 =================
 # name 参数只是起一个名字，FastAPI 内部使用
-# 浏览器输入：localhost:5555/statics/1.png，那么会返回 C:\Users\satori\Desktop\bg 下的 1.png 文件。
+# 浏览器输入：localhost:5555/static/1.png，那么会返回 项目static 下的 1.png 文件。
 from fastapi.staticfiles import StaticFiles
-app.mount("static", StaticFiles(directory=r".\statics"), name="static")
+app.mount("static", StaticFiles(directory=r".\static"), name="static")
 
 
 # ====================== 模板渲染 =========================
