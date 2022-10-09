@@ -571,6 +571,25 @@ async def ws(websocket: WebSocket):
 # limit_max_requests：能 hold 住的最大请求数
 
 
+
+
+# =============================================== 测试 =====================================
+from fastapi.testclient import TestClient
+
+
+client = TestClient(app=app)
+
+def test_app_random():
+    res = client.get('/random')
+    assert res.status_code == 200
+    assert type(res) == int
+
+def test_app_ua():
+    res = client.get('/ua')
+    assert res.status_code == 200
+
+
+
 # 在 Windows 中必须加上 if __name__ == "__main__"，否则会抛出 RuntimeError: This event loop is already running
 if __name__ == "__main__":
     # 启动服务，因为我们这个文件叫做 main.py，所以需要启动 main.py 里面的 apps
